@@ -1,0 +1,97 @@
+# Используется для деплоя проекта на DEV стенде и локальной разработки фронтенд разработчиков
+version: '3.3'
+
+services:
+    api-demo_project:
+        expose:
+            - 5002
+        build:
+            context: ../../
+            dockerfile: ./deployment/backend/Dockerfile
+        container_name: api-demo_project
+        command: ['entrypoint_api.sh']
+        environment:
+            - DATABASE=postgres
+            - DATABASE_NAME=${DATABASE_NAME}
+            - DATABASE_HOST=${DATABASE_HOST}
+            - DATABASE_PORT=${DATABASE_PORT}
+            - DATABASE_USER=${DATABASE_USER}
+            - DATABASE_PASS=${DATABASE_PASS}
+
+            - RABBITMQ_PASS=${RABBITMQ_PASS}
+            - RABBITMQ_HOST=${RABBITMQ_HOST}
+            - RABBITMQ_USER=${RABBITMQ_USER}
+            - RABBITMQ_PORT=${RABBITMQ_PORT}
+
+            - SMTP_HOST=${SMTP_HOST}
+            - SMTP_PASSWORD=${SMTP_PASSWORD}
+            - SMTP_SENDER=${SMTP_SENDER}
+            - SMTP_PORT=${SMTP_PORT}
+
+            - SWAGGER_ON=${SWAGGER_ON:-true}
+        depends_on:
+            - postgres-demo_project
+            - rabbitmq-demo_project
+
+    postgres-demo_project:
+        image: postgres:12.3
+        hostname: postgres
+        container_name: postgres-demo_project
+        environment:
+            POSTGRES_DB: ${DATABASE_NAME}
+            POSTGRES_USER: ${DATABASE_USER}
+            POSTGRES_PASSWORD: ${DATABASE_PASS}
+            PGDATA: "/var/lib/postgresql/data/pgdata"
+        volumes:
+            - /var/pg/demo_project:/var/lib/postgresql/data
+        ports:
+           - "5432:5432"
+
+    nginx-demo_project:
+        build: ../nginx
+        container_name: nginx-demo_project
+        ports:  
+            - '5002:1337'
+        depends_on:
+            - api-demo_project
+
+    rabbitmq-demo_project:
+        image: rabbitmq:3.11.15-alpine
+        hostname: rabbitmq
+        container_name: rabbitmq-demo_project
+        restart: always
+        environment:
+            - default_user=${RABBITMQ_PASS}
+            - default_pass=${RABBITMQ_USER}
+        volumes:
+            - /var/rabbitmq:/var/lib/rabbitmq
+        ports:
+            - "15672:15672"
+            - "5672:5672"
+
+    message-bus-demo_project:
+        build:
+            context: ../../
+            dockerfile: ./deployment/backend/Dockerfile
+        container_name: message-bus-demo_project
+        command: [ 'entrypoint_consumer.sh' ]
+        environment:
+            - DATABASE=postgres
+            - DATABASE_NAME=${DATABASE_NAME}
+            - DATABASE_HOST=${DATABASE_HOST}
+            - DATABASE_PORT=${DATABASE_PORT}
+            - DATABASE_USER=${DATABASE_USER}
+            - DATABASE_PASS=${DATABASE_PASS}
+
+            - RABBITMQ_PASS=${RABBITMQ_PASS}
+            - RABBITMQ_HOST=${RABBITMQ_HOST}
+            - RABBITMQ_USER=${RABBITMQ_USER}
+            - RABBITMQ_PORT=${RABBITMQ_PORT}
+
+            - SMTP_HOST=${SMTP_HOST}
+            - SMTP_PASSWORD=${SMTP_PASSWORD}
+            - SMTP_SENDER=${SMTP_SENDER}
+            - SMTP_PORT=${SMTP_PORT}
+        depends_on:
+            - postgres-demo_project
+            - rabbitmq-demo_project

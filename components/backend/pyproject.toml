@@ -1,0 +1,20 @@
+[tool.isort]
+profile = "black"
+known_first_party = ["ssd_libs"]
+known_local_folder = ["demo_project"]
+sections=["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+line_length = 100
+
+
+[tool.flake8]
+max-line-length = 100
+select = ['F', 'E', 'W', ]
+per-file-ignores = [
+    '*/adapters/*/repositories.py:E711,E712',
+    '*/adapters/*/repositories/*:E711,E712',
+    '*/migrations/*:E711,E712',
+    '*/alembic/versions/*:E711,E712',
+    '*/.venv',
+    '__init__.py:F401',
+]
+count = true
